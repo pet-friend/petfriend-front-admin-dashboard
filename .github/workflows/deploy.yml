@@ -157,7 +157,8 @@ jobs:
     needs:
       - build
       - terraform-output
-    if: !cancelled() && needs.build.result == 'success' && needs.terraform-output.result == 'success'
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.terraform-output.result == 'success'
     steps:
       - uses: actions/download-artifact@v3
         id: download-build
