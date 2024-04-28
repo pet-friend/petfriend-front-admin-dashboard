@@ -20,8 +20,7 @@ data "azurerm_resource_group" "rg" {
 resource "azurerm_static_web_app" "web" {
   name                = "${lower(var.env)}-${lower(var.app_name)}-web"
   resource_group_name = data.azurerm_resource_group.rg.name
-  location            = data.azurerm_resource_group.rg.location
-
-  sku_tier = "Free"
-  sku_size = "Free"
+  location            = local.location
+  sku_tier            = "Free"
+  sku_size            = "Free"
 }
