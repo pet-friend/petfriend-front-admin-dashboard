@@ -15,6 +15,7 @@ permissions:
 env:
   NODE_VERSION: 20.x
   ENV: ${{ (github.ref_name == 'main' && 'prd') || 'dev'}}
+  VITE_MODE: ${{ (github.ref_name == 'main' && 'production') || 'development' }}
   PLAN_OUTPUT: /tmp/terraform-plan.out
   TERRAFORM_VARS: # add terraform variables here if needed
 
@@ -140,7 +141,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build
-        run: npm run build
+        run: npm run build -- --mode ${{ env.VITE_MODE }}
       - name: Zip artifacts
         run: |
           cd dist
