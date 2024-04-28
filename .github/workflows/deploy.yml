@@ -74,7 +74,8 @@ jobs:
         run: |
           set -o pipefail
           echo '${{ env.TERRAFORM_VARS }}' >> terraform.auto.tfvars
-          terraform plan -compact-warnings -detailed-exitcode -no-color
+          terraform plan -compact-warnings -detailed-exitcode -no-color \
+            | tee ${{ env.PLAN_OUTPUT }}
         continue-on-error: true
       - name: Exit if failed
         if: steps.terraform-plan.outputs.exitcode == 1
