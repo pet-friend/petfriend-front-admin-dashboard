@@ -1,0 +1,174 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+env:
+  NODE_VERSION: 20.x
+  PLAN_OUTPUT: /tmp/terraform-plan.out
+  TERRAFORM_VARS: # add terraform variables here if needed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Zip artifacts
+        run: |
+          cd dist
+          zip -r ../${{ github.sha }}.zip .
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: ${{ github.sha }}.zip
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    outputs:
+      require-approval: ${{ steps.terraform-plan.outputs.exitcode == 2 }}
+      site-url: ${{ steps.out.outputs.site_url }}
+      plan-url: ${{ steps.plan-url.outputs.plan_url }}
+      tenant-id: ${{ steps.out.outputs.tenant_id }}
+      subscription-id: ${{ steps.out.outputs.subscription_id }}
+      client-id: ${{ steps.out.outputs.client_id }}
+      site-name: ${{ steps.out.outputs.site_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TFE_TOKEN }}
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init --backend-config ${{ github.ref_name }}/cloud.tfbackend
+      - name: Terraform Plan
+        id: terraform-plan
+        working-directory: infra
+        run: |
+          set -o pipefail
+          echo '${{ env.TERRAFORM_VARS }}' >> terraform.auto.tfvars
+          terraform plan -compact-warnings -detailed-exitcode -no-color
+        continue-on-error: true
+      - name: Exit if failed
+        if: steps.terraform-plan.outputs.exitcode == 1
+        run: exit 1
+      - name: Show plan URL
+        id: plan-url
+        shell: bash
+        run: |
+          PLAN_URL=$(grep https:\/\/.*\/.*\/runs\/run-.* ${{ env.PLAN_OUTPUT }})
+          echo "::notice title=Terraform Plan::$PLAN_URL"
+          echo "plan-url=$PLAN_URL" >> "$GITHUB_OUTPUT"
+      - name: Save outputs
+        id: out
+        working-directory: infra
+        run: |
+          terraform output -json | grep -Pzo "[\n^]{[\S\s]*}[\n$]" | jq -r 'to_entries | map("\(.key)=\(.value.value)") | .[]' >> "$GITHUB_OUTPUT"
+      - name: Show app url
+        run: |
+          echo "::notice title=App URL::${{ steps.out.outputs.site_url }}"
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    if: needs.terraform-plan.outputs.require-approval == 'true'
+    steps:
+      # Workaround to not having environments in GitHub Free
+      - uses: trstringer/manual-approval@v1
+        name: Approve Terraform Plan
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: ${{ github.actor }}
+          minimum-approvals: 1
+          issue-title: Approve Terraform Plan - ${{ github.ref_name }}
+          issue-body: >
+            Please review the [Terraform Plan](${{ needs.terraform-plan.outputs.plan-url }})
+            for the ${{ github.ref_name }} environment and approve it to start the deployment.
+          exclude-workflow-initiator-as-approver: false
+      - uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TFE_TOKEN }}
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init --backend-config ${{ github.ref_name }}/cloud.tfbackend
+      - name: Terraform Apply
+        id: terraform-apply
+        working-directory: infra
+        run: |
+          set -o pipefail
+          echo '${{ env.TERRAFORM_VARS }}' >> terraform.auto.tfvars
+          terraform apply -auto-approve -no-color
+      - name: Exit if failed
+        run: exit ${{ steps.terraform-apply.outputs.exitcode }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - terraform-plan
+      - terraform-apply
+    if: >-
+      !cancelled() && needs.terraform-plan.result == 'success' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    steps:
+      - uses: actions/download-artifact@v3
+        id: download-build
+        with:
+          name: build
+      - name: Unzip artifact
+        run: unzip ${{ steps.download-build.outputs.download-path }} -d dist
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          tenant-id: ${{ needs.terraform-plan.outputs.tenant-id }}
+          subscription-id: ${{ needs.terraform-plan.outputs.subscription-id }}
+          client-id: ${{ needs.terraform-plan.outputs.client-id }}
+      - name: Get API key for deployment
+        id: get-api-key
+        run: >
+          echo "api-key=$(
+            az staticwebapp secrets list
+            --name ${{ needs.terraform-plan.outputs.site-name }}
+            --query 'properties.apiKey' -o tsv
+          )" >> $GITHUB_OUTPUT
+      - name: Deploy static web app
+        uses: azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.get-api-key.outputs.api-key }}
+          action: upload
+          app_location: dist
+          output_location: ""
+          skip_app_build: true
+      - name: Logout from Azure
+        run: az logout

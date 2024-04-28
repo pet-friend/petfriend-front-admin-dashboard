@@ -1,0 +1,11 @@
+# Terraform
+infra/.terraform
+infra/terraform.tfstate
+infra/.terraform.lock.hcl
+
+# Build
+dist
+node_modules
+
+# IDEs
+.vscode
