@@ -11,8 +11,17 @@ resource "azurerm_dns_cname_record" "cname" {
   record              = azurerm_static_web_app.web.default_host_name
 }
 
+resource "time_sleep" "dns_propagation" {
+  create_duration = "30s"
+
+  triggers = {
+    domain_name  = "${azurerm_dns_cname_record.cname.name}.${azurerm_dns_cname_record.cname.zone_name}"
+    cname_record = azurerm_dns_cname_record.cname.record
+  }
+}
+
 resource "azurerm_static_web_app_custom_domain" "domain" {
   static_web_app_id = azurerm_static_web_app.web.id
-  domain_name       = "${azurerm_dns_cname_record.cname.name}.${azurerm_dns_cname_record.cname.zone_name}"
+  domain_name       = time_sleep.dns_propagation.triggers.domain_name
   validation_type   = "cname-delegation"
 }
