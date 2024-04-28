@@ -163,7 +163,7 @@ jobs:
         with:
           name: build
       - name: Unzip artifact
-        run: unzip ${{ steps.download-build.outputs.download-path }} -d dist
+        run: unzip ${{ steps.download-build.outputs.download-path }}/${{ github.sha }}.zip -d dist
       - name: Azure Login
         uses: azure/login@v2
         with:
