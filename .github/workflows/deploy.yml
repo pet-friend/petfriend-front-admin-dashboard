@@ -14,6 +14,7 @@ permissions:
 
 env:
   NODE_VERSION: 20.x
+  ENV: ${{ (github.ref_name == 'main' && 'prd') || 'dev'}}
   PLAN_OUTPUT: /tmp/terraform-plan.out
   TERRAFORM_VARS: # add terraform variables here if needed
 
@@ -52,12 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       require-approval: ${{ steps.terraform-plan.outputs.exitcode == 2 }}
-      site-url: ${{ steps.out.outputs.site_url }}
-      plan-url: ${{ steps.plan-url.outputs.plan_url }}
-      tenant-id: ${{ steps.out.outputs.tenant_id }}
-      subscription-id: ${{ steps.out.outputs.subscription_id }}
-      client-id: ${{ steps.out.outputs.client_id }}
-      site-name: ${{ steps.out.outputs.site_name }}
+      plan-url: ${{ steps.plan-url.outputs.plan-url }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Terraform
@@ -87,14 +83,6 @@ jobs:
           PLAN_URL=$(grep https:\/\/.*\/.*\/runs\/run-.* ${{ env.PLAN_OUTPUT }})
           echo "::notice title=Terraform Plan::$PLAN_URL"
           echo "plan-url=$PLAN_URL" >> "$GITHUB_OUTPUT"
-      - name: Save outputs
-        id: out
-        working-directory: infra
-        run: |
-          terraform output -json | grep -Pzo "[\n^]{[\S\s]*}[\n$]" | jq -r 'to_entries | map("\(.key)=\(.value.value)") | .[]' >> "$GITHUB_OUTPUT"
-      - name: Show app url
-        run: |
-          echo "::notice title=App URL::${{ steps.out.outputs.site_url }}"
 
   terraform-apply:
     name: Terraform Apply
@@ -109,10 +97,10 @@ jobs:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: ${{ github.actor }}
           minimum-approvals: 1
-          issue-title: Approve Terraform Plan - ${{ github.ref_name }}
+          issue-title: Approve Terraform Plan - ${{ env.ENV }}
           issue-body: >
             Please review the [Terraform Plan](${{ needs.terraform-plan.outputs.plan-url }})
-            for the ${{ github.ref_name }} environment and approve it to start the deployment.
+            for the ${{ env.ENV }} environment and approve it to start the deployment.
           exclude-workflow-initiator-as-approver: false
       - uses: actions/checkout@v4
       - name: Set up Terraform
@@ -133,16 +121,42 @@ jobs:
       - name: Exit if failed
         run: exit ${{ steps.terraform-apply.outputs.exitcode }}
 
+  terraform-output:
+    name: Get Terraform Outputs
+    runs-on: ubuntu-latest
+    needs:
+      - terraform-apply
+    if: >-
+      !cancelled() && (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    outputs:
+      tenant-id: ${{ steps.out.outputs.tenant_id }}
+      subscription-id: ${{ steps.out.outputs.subscription_id }}
+      client-id: ${{ steps.out.outputs.client_id }}
+      site-name: ${{ steps.out.outputs.site_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TFE_TOKEN }}
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init --backend-config ${{ github.ref_name }}/cloud.tfbackend
+      - name: Save outputs
+        id: out
+        working-directory: infra
+        run: |
+          terraform output -json | grep -Pzo "[\n^]{[\S\s]*}[\n$]" | jq -r 'to_entries | map("\(.key)=\(.value.value)") | .[]' >> "$GITHUB_OUTPUT"
+      - name: Show app url
+        run: |
+          echo "::notice title=App URL::${{ steps.out.outputs.site_url }}"
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     needs:
       - build
-      - terraform-plan
-      - terraform-apply
-    if: >-
-      !cancelled() && needs.terraform-plan.result == 'success' &&
-      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+      - terraform-output
     steps:
       - uses: actions/download-artifact@v3
         id: download-build
@@ -153,15 +167,15 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          tenant-id: ${{ needs.terraform-plan.outputs.tenant-id }}
-          subscription-id: ${{ needs.terraform-plan.outputs.subscription-id }}
-          client-id: ${{ needs.terraform-plan.outputs.client-id }}
+          tenant-id: ${{ needs.terraform-output.outputs.tenant-id }}
+          subscription-id: ${{ needs.terraform-output.outputs.subscription-id }}
+          client-id: ${{ needs.terraform-output.outputs.client-id }}
       - name: Get API key for deployment
         id: get-api-key
         run: >
           echo "api-key=$(
             az staticwebapp secrets list
-            --name ${{ needs.terraform-plan.outputs.site-name }}
+            --name ${{ needs.terraform-output.outputs.site-name }}
             --query 'properties.apiKey' -o tsv
           )" >> $GITHUB_OUTPUT
       - name: Deploy static web app
