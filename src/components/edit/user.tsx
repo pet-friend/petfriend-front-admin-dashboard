@@ -2,7 +2,7 @@ import { SimpleForm, Edit, TextInput, DateInput } from "react-admin";
 
 function UserEdit() {
   return (
-    <Edit>
+    <Edit mutationMode="pessimistic">
       <SimpleForm>
         <TextInput source="id" InputProps={{ disabled: true }} />
         <TextInput source="username" />

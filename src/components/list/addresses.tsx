@@ -5,7 +5,9 @@ import {
   TextInput,
   NumberField,
   ReferenceField,
+  SelectInput,
 } from "react-admin";
+import { USER_ADDRESS_TYPE_CHOICES } from "../../constants";
 
 const filters = [
   <TextInput source="country_code" key="country_code" />,
@@ -13,7 +15,7 @@ const filters = [
   <TextInput source="city" key="city" />,
   <TextInput source="street" key="street" />,
   <TextInput source="street_number" key="street_number" />,
-  <TextInput source="type" key="type" />,
+  <SelectInput source="type" key="type" choices={USER_ADDRESS_TYPE_CHOICES} />,
   <TextInput source="apartment" key="apartment" />,
 ];
 
@@ -21,6 +23,7 @@ function AddressesList() {
   return (
     <List filters={filters}>
       <Datagrid rowClick="show">
+        <ReferenceField source="user_id" reference="users" label="users" />
         <TextField source="id" />
         <TextField label="Country" source="country_code" />
         <TextField source="region" />
@@ -31,7 +34,6 @@ function AddressesList() {
         <TextField source="apartment" />
         <NumberField source="latitude" />
         <NumberField source="longitude" />
-        <ReferenceField source="user_id" reference="users" label="users" />
       </Datagrid>
     </List>
   );

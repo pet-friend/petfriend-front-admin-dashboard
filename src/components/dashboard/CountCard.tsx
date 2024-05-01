@@ -1,21 +1,28 @@
 import { useTheme } from "@mui/material/styles";
-
+import type { PaletteColor, Palette } from "@mui/material/styles";
 import Avatar from "@mui/material/Avatar";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+export type ColorKey = keyof {
+  [k in keyof Palette as Palette[k] extends PaletteColor
+    ? k
+    : never]: Palette[k];
+};
+
 export type CountCardProps = {
   title: string;
   value: string;
   icon: React.ReactNode;
+  color: ColorKey;
 };
 
-function CountCard({ title, value, icon }: CountCardProps) {
+function CountCard({ title, value, icon, color }: CountCardProps) {
   const theme = useTheme();
   return (
-    <Card>
+    <Card sx={{ height: "100%" }}>
       <CardContent>
         <Stack spacing={2}>
           <Stack
@@ -31,7 +38,7 @@ function CountCard({ title, value, icon }: CountCardProps) {
             </Stack>
             <Avatar
               sx={{
-                backgroundColor: theme.palette.success.main,
+                backgroundColor: theme.palette[color].main,
                 height: "56px",
                 width: "56px",
               }}

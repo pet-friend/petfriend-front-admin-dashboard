@@ -6,8 +6,7 @@ import {
   EmailField,
   ImageField,
   TextInput,
-  ReferenceManyField,
-  SingleFieldList,
+  ReferenceManyCount,
 } from "react-admin";
 
 const filters = [
@@ -28,13 +27,17 @@ function UsersList() {
         <TextField source="name" />
         <TextField source="surname" />
         <DateField source="birth_date" />
-        <ReferenceManyField
+        <ReferenceManyCount
           reference="addresses"
           target="user_id"
-          label="Addresses"
-        >
-          <SingleFieldList />
-        </ReferenceManyField>
+          label="Loaded addresses"
+        />
+        <ReferenceManyCount
+          reference="tickets"
+          target="user_id"
+          label="Open tickets"
+          filter={{ status: "open" }}
+        />
       </Datagrid>
     </List>
   );

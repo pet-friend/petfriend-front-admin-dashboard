@@ -1,6 +1,7 @@
 import { Admin, Resource, defaultDarkTheme } from "react-admin";
 import PersonIcon from "@mui/icons-material/Person";
 import MapIcon from "@mui/icons-material/Map";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import dataProvider from "./dataProvider";
 import authProvider from "./auth";
 import Layout from "./components/Layout";
@@ -14,6 +15,10 @@ import AddressesList from "./components/list/addresses";
 import ShowAddress from "./components/show/address";
 import EditAddress from "./components/edit/address";
 import CreateAddress from "./components/create/address";
+import TicketsList from "./components/list/tickets";
+import ShowTicket from "./components/show/ticket";
+import EditTicket from "./components/edit/ticket";
+import CreateTicket from "./components/create/ticket";
 
 const App = () => (
   <Admin
@@ -44,6 +49,15 @@ const App = () => (
       recordRepresentation={(record) =>
         `${record.street_number} ${record.street}, ${record.city}, ${record.region}, ${record.country_code}`
       }
+    />
+    <Resource
+      name="tickets"
+      list={TicketsList}
+      show={ShowTicket}
+      edit={EditTicket}
+      create={CreateTicket}
+      icon={SupportAgentIcon}
+      recordRepresentation={(record) => record.title}
     />
   </Admin>
 );

@@ -10,6 +10,8 @@ import {
   useRefresh,
   useGetRecordId,
   useNotify,
+  ReferenceManyField,
+  Datagrid,
 } from "react-admin";
 import type { Identifier } from "react-admin";
 import FormGroup from "@mui/material/FormGroup";
@@ -17,7 +19,6 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useEffect, useState } from "react";
-import CardHeader from "@mui/material/CardHeader";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 
@@ -54,27 +55,12 @@ function UserShow() {
 
   return (
     <>
-      <Show>
-        <SimpleShowLayout>
-          <TextField source="id" />
-          <ImageField label="Image" source="image_url" />
-          <TextField source="username" />
-          <EmailField source="email" />
-          <TextField source="name" />
-          <TextField source="surname" />
-          <DateField source="birth_date" />
-        </SimpleShowLayout>
-      </Show>
       <Card sx={{ marginTop: "1rem" }}>
-        <CardHeader title="User settings" />
         <CardContent>
+          User settings
           <FormGroup
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: "1rem",
-            }}
+            className="horizontal gap"
+            sx={{ alignItems: "center", marginTop: "1rem" }}
           >
             <FormControlLabel
               control={
@@ -90,6 +76,43 @@ function UserShow() {
           </FormGroup>
         </CardContent>
       </Card>
+      <Show>
+        <SimpleShowLayout>
+          <TextField source="id" />
+          <ImageField label="Image" source="image_url" />
+          <TextField source="username" />
+          <EmailField source="email" />
+          <TextField source="name" />
+          <TextField source="surname" />
+          <DateField source="birth_date" />
+          <ReferenceManyField
+            reference="addresses"
+            target="user_id"
+            label="Addresses"
+          >
+            <Datagrid rowClick="show">
+              <TextField label="Country" source="country_code" />
+              <TextField source="region" />
+              <TextField source="city" />
+              <TextField source="street" />
+              <TextField source="street_number" />
+            </Datagrid>
+          </ReferenceManyField>
+          <ReferenceManyField
+            reference="tickets"
+            target="user_id"
+            label="Tickets"
+          >
+            <Datagrid rowClick="show">
+              <TextField source="title" />
+              <TextField source="status" />
+              <TextField source="description" />
+              <DateField source="created_at" showTime />
+              <DateField source="updated_at" showTime />
+            </Datagrid>
+          </ReferenceManyField>
+        </SimpleShowLayout>
+      </Show>
     </>
   );
 }

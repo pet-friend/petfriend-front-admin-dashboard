@@ -3,6 +3,7 @@ import userProvider from "./users";
 import { HttpStatusCode, isAxiosError } from "axios";
 import addressProvider from "./addresses";
 import adminProvider from "./admin";
+import ticketProvider from "./tickets";
 
 type ResourceType = "users";
 
@@ -22,6 +23,7 @@ const providers: Record<string, DataProvider<any>> = {
   users: userProvider,
   addresses: addressProvider,
   admins: adminProvider,
+  tickets: ticketProvider,
 };
 
 // @ts-ignore
