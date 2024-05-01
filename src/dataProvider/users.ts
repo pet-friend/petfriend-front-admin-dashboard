@@ -1,61 +1,71 @@
-import {
+import type {
   CreateParams,
   DataProvider,
   DeleteManyParams,
   DeleteParams,
   GetListParams,
   GetManyParams,
-  GetManyReferenceParams,
   GetOneParams,
-  UpdateManyParams,
   UpdateParams,
 } from "react-admin";
 import axios from "axios";
 import { USERS_API_URL } from "../util";
 
-const userProvider: DataProvider<"user"> = {
-  // @ts-ignore
-  getList: async (resource: "user", { pagination }: GetListParams) => {
-    const response = await axios.get<User[]>(`${USERS_API_URL}/users`);
+const userProvider: DataProvider<"users"> = {
+  getList: async (_r: "users", { pagination, sort, filter }: GetListParams) => {
+    const response = await axios.get(`${USERS_API_URL}/admin/users`, {
+      params: {
+        sort_by: sort.field,
+        sort_order: sort.order.toLowerCase(),
+        limit: pagination.perPage,
+        offset: (pagination.page - 1) * pagination.perPage,
+        filters: JSON.stringify(filter),
+      },
+    });
     return {
-      data: response.data.slice(
-        (pagination.page - 1) * pagination.perPage,
-        pagination.page * pagination.perPage,
-      ),
-      total: response.data.length,
+      data: response.data.users,
+      total: response.data.amount,
     };
   },
-  getOne: <T>(resource: "user", params: GetOneParams) => {
-    console.log("getOne", resource, params);
-    return Promise.resolve({ data: {} as T });
+  getOne: async (_r: "users", { id }: GetOneParams) => {
+    const r = await axios.get(`${USERS_API_URL}/users/${id}`);
+    return { data: r.data };
   },
-  getMany: (resource: "user", params: GetManyParams) => {
-    console.log("getMany", resource, params);
-    return Promise.resolve({ data: [] });
+  getMany: async (_r: "users", params: GetManyParams) => {
+    return {
+      data: await Promise.all(
+        params.ids.map((id) =>
+          userProvider.getOne("users", { id }).then((r) => r.data),
+        ),
+      ),
+    };
   },
-  getManyReference: (resource: "user", params: GetManyReferenceParams) => {
-    console.log("getManyReference", resource, params);
-    return Promise.resolve({ data: [], total: 0 });
+  getManyReference: () => {
+    throw new Error("Method not implemented.");
   },
-  create: <T>(resource: "user", params: CreateParams) => {
-    console.log("create", resource, params);
-    return Promise.resolve({ data: {} as T });
+  create: async (_r: "users", params: CreateParams) => {
+    const r = await axios.post(`${USERS_API_URL}/users`, params.data);
+    return { data: r.data };
   },
-  update: <T>(resource: "user", params: UpdateParams) => {
-    console.log("update", resource, params);
-    return Promise.resolve({ data: {} as T });
+  update: async (_r: "users", params: UpdateParams) => {
+    const r = await axios.put(
+      `${USERS_API_URL}/admin/users/${params.id}`,
+      params.data,
+    );
+    return { data: r.data };
   },
-  updateMany: (resource: "user", params: UpdateManyParams) => {
-    console.log("updateMany", resource, params);
-    return Promise.resolve({ data: [] });
+  updateMany: () => {
+    throw new Error("Method not implemented.");
   },
-  delete: <T>(resource: "user", params: DeleteParams) => {
-    console.log("delete", resource, params);
-    return Promise.resolve({ data: {} as T });
+  delete: async (_r: "users", params: DeleteParams) => {
+    await axios.delete(`${USERS_API_URL}/admin/users/${params.id}`);
+    return { data: params.previousData };
   },
-  deleteMany: (resource: "user", params: DeleteManyParams) => {
-    console.log("deleteMany", resource, params);
-    return Promise.resolve({ data: [] });
+  deleteMany: async (_r: "users", params: DeleteManyParams) => {
+    await Promise.all(
+      params.ids.map((id) => userProvider.delete("users", { id })),
+    );
+    return { data: params.ids };
   },
 };
 

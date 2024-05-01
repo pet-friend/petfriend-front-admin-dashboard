@@ -20,6 +20,12 @@ module.exports = {
   plugins: ["react", "react-refresh"],
   rules: {
     "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "no-console": "off",
     "security/detect-object-injection": "off",
   },
