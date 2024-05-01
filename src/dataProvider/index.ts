@@ -39,10 +39,12 @@ const dataProvider: DataProvider<ResourceType> = Object.fromEntries(
           error.response?.status === HttpStatusCode.BadRequest
         ) {
           throw {
-            message: Object.entries(error.response.data.detail)
-              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(", "),
+            message:
+              "Validation error: " +
+              Object.entries(error.response.data.detail)
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                .map(([key, value]) => `${key}: ${value}`)
+                .join("; "),
           };
         }
         throw error;
