@@ -61,7 +61,7 @@ function Dashboard() {
           <Card sx={{ padding: "1rem" }}>
             <CardHeader title="Administrators" />
             <CardContent>
-              Add more admins by opening an user in the Users tab
+              Add more admins by opening selecting a user in the Users tab
             </CardContent>
             <AdminsList />
           </Card>
