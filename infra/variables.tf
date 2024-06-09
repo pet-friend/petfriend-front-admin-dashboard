@@ -9,3 +9,14 @@ variable "app_name" {
   default     = "admin-dashboard"
   type        = string
 }
+
+variable "dns_zone_data" {
+  description = "DNS zone data"
+  type = object({
+    tenant_id       = string
+    subscription_id = string
+    client_id       = string
+  })
+  nullable = true
+  default  = null
+}

@@ -1,29 +1,65 @@
-import { useState } from "react";
-import "./App.css";
+import { Admin, Resource, defaultDarkTheme } from "react-admin";
+import PersonIcon from "@mui/icons-material/Person";
+import MapIcon from "@mui/icons-material/Map";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import dataProvider from "./dataProvider";
+import authProvider from "./auth";
+import Layout from "./components/Layout";
+import Home from "./components/Dashboard";
 
-function App() {
-  const [count, setCount] = useState(0);
+import UsersList from "./components/list/users";
+import ShowUser from "./components/show/user";
+import EditUser from "./components/edit/user";
+import CreateUser from "./components/create/user";
+import AddressesList from "./components/list/addresses";
+import ShowAddress from "./components/show/address";
+import EditAddress from "./components/edit/address";
+import CreateAddress from "./components/create/address";
+import TicketsList from "./components/list/tickets";
+import ShowTicket from "./components/show/ticket";
+import EditTicket from "./components/edit/ticket";
+import CreateTicket from "./components/create/ticket";
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank"></a>
-        <a href="https://react.dev" target="_blank"></a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  );
-}
+const App = () => (
+  <Admin
+    // @ts-ignore
+    dataProvider={dataProvider}
+    authProvider={authProvider}
+    requireAuth
+    layout={Layout}
+    darkTheme={defaultDarkTheme}
+    dashboard={Home}
+  >
+    <Resource
+      name="users"
+      list={UsersList}
+      show={ShowUser}
+      edit={EditUser}
+      create={CreateUser}
+      icon={PersonIcon}
+      recordRepresentation={(record) => record.username}
+    />
+    <Resource
+      name="addresses"
+      list={AddressesList}
+      show={ShowAddress}
+      edit={EditAddress}
+      create={CreateAddress}
+      icon={MapIcon}
+      recordRepresentation={(record) =>
+        `${record.street_number} ${record.street}, ${record.city}, ${record.region}, ${record.country_code}`
+      }
+    />
+    <Resource
+      name="tickets"
+      list={TicketsList}
+      show={ShowTicket}
+      edit={EditTicket}
+      create={CreateTicket}
+      icon={SupportAgentIcon}
+      recordRepresentation={(record) => record.title}
+    />
+  </Admin>
+);
 
 export default App;
