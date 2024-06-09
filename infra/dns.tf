@@ -1,9 +1,13 @@
 data "azurerm_dns_zone" "dns" {
+  provider = azurerm.dns_sub
+
   name                = local.dns_zone
-  resource_group_name = data.azurerm_resource_group.rg.name
+  resource_group_name = local.dns_zone_resource_group
 }
 
 resource "azurerm_dns_cname_record" "cname" {
+  provider = azurerm.dns_sub
+
   name                = "${local.subdomain}${local.env_subdomain_suffix}"
   zone_name           = data.azurerm_dns_zone.dns.name
   resource_group_name = data.azurerm_dns_zone.dns.resource_group_name

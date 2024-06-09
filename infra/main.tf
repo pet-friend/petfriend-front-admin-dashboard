@@ -14,6 +14,15 @@ provider "azurerm" {
   features {}
 }
 
+provider "azurerm" {
+  alias = "dns_sub"
+  features {}
+
+  tenant_id       = var.dns_zone_data == null ? data.azurerm_client_config.config.tenant_id : var.dns_zone_data.tenant_id
+  subscription_id = var.dns_zone_data == null ? data.azurerm_client_config.config.subscription_id : var.dns_zone_data.subscription_id
+  client_id       = var.dns_zone_data == null ? data.azurerm_client_config.config.client_id : var.dns_zone_data.client_id
+}
+
 data "azurerm_client_config" "config" {}
 
 data "azurerm_resource_group" "rg" {
