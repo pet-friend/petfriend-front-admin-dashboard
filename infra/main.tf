@@ -26,7 +26,7 @@ provider "azurerm" {
 data "azurerm_client_config" "config" {}
 
 data "azurerm_resource_group" "rg" {
-  name = local.resource_group_name
+  name = var.resource_group_name
 }
 
 resource "azurerm_static_web_app" "web" {

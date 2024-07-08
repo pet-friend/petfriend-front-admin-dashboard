@@ -1,6 +1,5 @@
 locals {
-  resource_group_name = "${upper(var.env)}-CENTRAL"
-  location            = "eastus2"
+  location = "eastus2"
 
   dns_zone_resource_group = "PRD-CENTRAL"
   dns_zone                = "petfriend.delu.ar"
