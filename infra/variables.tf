@@ -24,5 +24,4 @@ variable "dns_zone_data" {
 variable "resource_group_name" {
   description = "Resource group to deploy to"
   type        = string
-  default     = "${upper(var.env)}-CENTRAL"
 }
